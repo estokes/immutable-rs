@@ -566,7 +566,7 @@ where
 
     fn update_chunk<Q, D, F>(
         &self,
-        chunk: &mut ArrayVec<[(Q, D); SIZE]>,
+        chunk: &mut Vec<(Q, D)>,
         f: &mut F,
     ) -> Self
     where
@@ -634,11 +634,11 @@ where
         }
     }
 
-    fn insert_chunk(&self, chunk: &mut ArrayVec<[(K, V); SIZE]>) -> Self {
+    fn insert_chunk(&self, chunk: &mut Vec<(K, V)>) -> Self {
         self.update_chunk(chunk, &mut |k, v, _| Some((k, v)))
     }
 
-    fn do_chunk<Q, D, F>(&mut self, chunk: &mut ArrayVec<[(Q, D); SIZE]>, f: &mut F)
+    fn do_chunk<Q, D, F>(&mut self, chunk: &mut Vec<(Q, D)>, f: &mut F)
     where
         Q: Ord,
         K: Borrow<Q>,
@@ -662,7 +662,7 @@ where
         F: FnMut(Q, D, Option<(&K, &V)>) -> Option<(K, V)>,
     {
         let mut t = self.clone();
-        let mut chunk: ArrayVec<[(Q, D); SIZE]> = ArrayVec::new();
+        let mut chunk: Vec<(Q, D)> = Vec::new();
         for (q, d) in elts {
             match chunk.last().map(|p| p.0.cmp(&q)) {
                 None => chunk.push((q, d)),

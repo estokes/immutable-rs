@@ -24,7 +24,7 @@ time a key is added or removed
 -- increases the size of each allocation
 -- icreases the overall amount of memory allocated for each change to the tree
  */
-pub(crate) const SIZE: usize = 256;
+pub(crate) const SIZE: usize = 512;
 
 pub(crate) enum UpdateChunk<Q: Ord, K: Ord + Clone + Borrow<Q>, V: Clone, D> {
     UpdateLeft,
@@ -32,14 +32,14 @@ pub(crate) enum UpdateChunk<Q: Ord, K: Ord + Clone + Borrow<Q>, V: Clone, D> {
     Created(Chunk<K, V>),
     Updated {
         elts: Chunk<K, V>,
-        update_left: ArrayVec<[(Q, D); SIZE]>,
-        update_right: ArrayVec<[(Q, D); SIZE]>,
-        overflow_right: ArrayVec<[(K, V); SIZE]>,
+        update_left: Vec<(Q, D)>,
+        update_right: Vec<(Q, D)>,
+        overflow_right: Vec<(K, V)>,
     },
     Removed {
-        not_done: ArrayVec<[(Q, D); SIZE]>,
-        update_left: ArrayVec<[(Q, D); SIZE]>,
-        update_right: ArrayVec<[(Q, D); SIZE]>,
+        not_done: Vec<(Q, D)>,
+        update_left: Vec<(Q, D)>,
+        update_right: Vec<(Q, D)>,
     },
 }
 
@@ -126,7 +126,7 @@ where
     // chunk must be sorted
     pub(crate) fn update_chunk<Q, D, F>(
         &self,
-        chunk: &mut ArrayVec<[(Q, D); SIZE]>,
+        chunk: &mut Vec<(Q, D)>,
         leaf: bool,
         f: &mut F,
     ) -> UpdateChunk<Q, K, V, D>
@@ -162,28 +162,28 @@ where
                 elts.vals.extend(self.vals.iter().cloned());
                 let overflow_right = {
                     if self.len() + clen <= SIZE {
-                        ArrayVec::new()
+                        Vec::new()
                     } else {
                         let overflow = SIZE - clen;
                         self.keys[overflow..]
                             .iter()
                             .cloned()
                             .zip(elts.vals[overflow..].iter().cloned())
-                            .collect::<ArrayVec<_>>()
+                            .collect::<Vec<_>>()
                     }
                 };
                 UpdateChunk::Updated {
                     elts,
-                    update_left: ArrayVec::new(),
-                    update_right: ArrayVec::new(),
+                    update_left: Vec::new(),
+                    update_right: Vec::new(),
                     overflow_right,
                 }
             } else {
                 let mut elts = self.clone();
-                let mut not_done = ArrayVec::new();
-                let mut update_left = ArrayVec::new();
-                let mut update_right = ArrayVec::new();
-                let mut overflow_right = ArrayVec::new();
+                let mut not_done = Vec::new();
+                let mut update_left = Vec::new();
+                let mut update_right = Vec::new();
+                let mut overflow_right = Vec::new();
                 for (q, d) in chunk.drain(0..) {
                     if elts.len() == 0 {
                         not_done.push((q, d));
@@ -427,7 +427,7 @@ where
         (&self.keys[i], &self.vals[i])
     }
 
-    pub(crate) fn to_vec(&self) -> ArrayVec<[(K, V); SIZE]> {
+    pub(crate) fn to_vec(&self) -> Vec<(K, V)> {
         self.into_iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect()
